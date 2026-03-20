@@ -122,7 +122,7 @@ emotion-music-recommender/
 ### 1. Clone & Setup Environment
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Sansii18/Emotion-Aware-Song-Recommendation-System.git
 cd emotion-music-recommender
 
 # Create virtual environment
