@@ -193,7 +193,7 @@ Opens at `http://localhost:8501`
 
 | Metric | CustomCNN | MobileNetV2 |
 |--------|-----------|-------------|
-| Val Accuracy | ~72% | ~75% |
+| Val Accuracy | ~70% | ~68% |
 | Contempt F1 | Low | Better |
 | Parameters | 2.1M | 3.5M |
 | Inference Time | 15ms | 25ms |
