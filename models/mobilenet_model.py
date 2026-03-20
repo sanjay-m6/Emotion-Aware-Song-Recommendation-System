@@ -34,8 +34,7 @@ class MobileNetV2Model(nn.Module):
     2. Unfrozen backbone (fine-tunes entire network)
     
     Attributes:
-        backbone: MobileNetV2 feature extractor (pretrained on ImageNet)
-        classifier: Custom FC head (1280 → 512 → 8)
+        backbone: Full MobileNetV2 with replaced classifier head
         backbone_frozen: Boolean tracking freeze state
     """
     
@@ -48,65 +47,66 @@ class MobileNetV2Model(nn.Module):
         """
         super(MobileNetV2Model, self).__init__()
         
-        # Load pretrained MobileNetV2
-        mobilenet = models.mobilenet_v2(pretrained=pretrained)
+        # ── FIX 1: Use weights= instead of deprecated pretrained= ──
+        weights = models.MobileNet_V2_Weights.IMAGENET1K_V1 if pretrained else None
+        backbone = models.mobilenet_v2(weights=weights)
         
-        # Extract backbone (features) and keep input layer for RGB
-        self.backbone = mobilenet.features
+        # ── FIX 2: classifier[1] is Linear, classifier[0] is Dropout ──
+        in_features = backbone.classifier[1].in_features  # 1280
         
-        # Get output channels from last conv layer
-        num_input_features = mobilenet.classifier[0].in_features  # 1280
-        
-        # Replace classifier head
-        self.classifier = nn.Sequential(
-            nn.Linear(num_input_features, 512),
-            nn.ReLU(inplace=True),
+        # ── FIX 3: Replace entire classifier inside backbone ──
+        # Stronger head: Dropout → Linear(1280→512) → ReLU → Dropout → Linear(512→8)
+        backbone.classifier = nn.Sequential(
             nn.Dropout(p=0.4),
-            nn.Linear(512, 8)
+            nn.Linear(in_features, 512),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=0.3),
+            nn.Linear(512, 8),
         )
         
-        # Average pooling for spatial dimensions
-        self.avg_pool = nn.AdaptiveAvgPool2d((1, 1))
-        self.flatten = nn.Flatten()
+        # Store full backbone (features + classifier together)
+        self.backbone = backbone
         
         # Track freeze state
         self.backbone_frozen = False
     
     def freeze_backbone(self) -> None:
         """
-        Freeze all backbone layers (feature extractor).
+        Freeze all feature extraction layers — only train classifier head.
         
-        Only the classifier head is trainable. Useful for initial training
-        when only learning the task-specific head.
+        Useful for first 12 epochs where only the new classifier
+        should be learning.
         
         Example:
             model = MobileNetV2Model()
             model.freeze_backbone()
             # Only classifier parameters will have gradients
         """
-        for param in self.backbone.parameters():
+        # ── FIX 4: freeze backbone.features, not backbone ──
+        for param in self.backbone.features.parameters():
             param.requires_grad = False
         
         self.backbone_frozen = True
+        print("🔒 Backbone FROZEN — training classifier head only")
     
     def unfreeze_backbone(self) -> None:
         """
-        Unfreeze all backbone layers (feature extractor).
+        Unfreeze all feature extraction layers for full fine-tuning.
         
-        All network weights become trainable. Useful for fine-tuning
-        after initial training on the classifier head.
+        Call this at epoch 12 with a reduced LR (3e-5) to avoid
+        overwriting pretrained ImageNet weights aggressively.
         
         Example:
-            model = MobileNetV2Model()
-            model.freeze_backbone()
-            # ... train for a few epochs ...
             model.unfreeze_backbone()
-            # ... continue training with lower learning rate ...
+            for pg in optimizer.param_groups:
+                pg["lr"] = 3e-5
         """
-        for param in self.backbone.parameters():
+        # ── FIX 4: unfreeze backbone.features, not backbone ──
+        for param in self.backbone.features.parameters():
             param.requires_grad = True
         
         self.backbone_frozen = False
+        print("🔓 Backbone UNFROZEN — fine-tuning all layers")
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -118,47 +118,32 @@ class MobileNetV2Model(nn.Module):
         Returns:
             Logits tensor of shape (batch, 8)
         """
-        # Feature extraction via backbone
-        x = self.backbone(x)
-        
-        # Global average pooling
-        x = self.avg_pool(x)
-        
-        # Flatten
-        x = self.flatten(x)
-        
-        # Classification head
-        x = self.classifier(x)
-        
-        return x
+        # ── FIX 5: single call — backbone handles features + 
+        #           pooling + classifier internally ──
+        return self.backbone(x)
     
     def get_confidence(self, logits: torch.Tensor) -> Tuple[str, float]:
         """
         Get predicted emotion and confidence from logits.
         
         Args:
-            logits: Raw output tensor of shape (batch, 8) or (8,) for single sample
+            logits: Raw output tensor of shape (batch, 8) or (8,)
             
         Returns:
-            Tuple of (emotion_name: str, confidence: float in [0.0, 1.0])
+            Tuple of (emotion_name: str, confidence: float 0.0–1.0)
             
         Example:
-            logits = model(images)  # (batch, 8)
-            emotion, conf = model.get_confidence(logits[0])  # "happy", 0.92
+            logits = model(images)
+            emotion, conf = model.get_confidence(logits)
+            # "happy", 0.92
         """
-        # Handle batch or single sample
         if logits.dim() > 1:
             logits = logits[0] if logits.shape[0] == 1 else logits
         
-        # Apply softmax to get probabilities
         probs = F.softmax(logits, dim=-1)
-        
-        # Get highest confidence emotion
         confidence, pred_idx = torch.max(probs, dim=-1)
-        confidence_float = float(confidence.item())
-        emotion_name = LABEL_TO_EMOTION[int(pred_idx.item())]
         
-        return emotion_name, confidence_float
+        return LABEL_TO_EMOTION[int(pred_idx.item())], float(confidence.item())
     
     def get_all_scores(self, logits: torch.Tensor) -> Dict[str, float]:
         """
@@ -168,24 +153,18 @@ class MobileNetV2Model(nn.Module):
             logits: Raw output tensor of shape (batch, 8) or (8,)
             
         Returns:
-            Dictionary mapping emotion names to probabilities {emotion: float}
+            Dict mapping emotion names to probabilities
             
         Example:
-            logits = model(images)
-            scores = model.get_all_scores(logits[0])
-            # {"anger": 0.01, "surprise": 0.02, ..., "disgust": 0.45}
+            scores = model.get_all_scores(logits)
+            # {"anger": 0.01, "happy": 0.85, ...}
         """
-        # Handle batch or single sample
         if logits.dim() > 1:
             logits = logits[0] if logits.shape[0] == 1 else logits
         
-        # Apply softmax to get probabilities
         probs = F.softmax(logits, dim=-1)
         
-        # Build dict of emotion → probability
-        scores = {
+        return {
             LABEL_TO_EMOTION[i]: float(probs[i].item())
             for i in range(8)
         }
-        
-        return scores

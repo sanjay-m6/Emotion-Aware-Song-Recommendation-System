@@ -15,6 +15,8 @@ import json
 import argparse
 from pathlib import Path
 from typing import Tuple, Dict, Optional
+import warnings
+warnings.filterwarnings("ignore")
 
 import numpy as np
 import torch
@@ -93,7 +95,7 @@ class Trainer:
         self.model = self.model.to(self.device)
         
         # Loss function (sampler handles imbalance)
-        self.criterion = nn.CrossEntropyLoss()
+        self.criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
         
         # Optimizer
         weight_decay = 1e-4
@@ -106,7 +108,7 @@ class Trainer:
         self.scheduler = CosineAnnealingLR(self.optimizer, T_max=epochs)
         
         # Early stopping
-        self.patience = 12
+        self.patience = 8
         self.patience_counter = 0
         self.best_val_accuracy = 0.0
         
@@ -141,20 +143,24 @@ class Trainer:
         
         # Create dataloaders
         train_sampler = train_dataset.get_sampler()
+        # MPS (Apple Silicon) doesn't support pin_memory or multi-workers
+        _num_workers = 0 if str(self.device) in ("mps", "cpu") else 4
+        _pin_memory  = True if str(self.device) == "cuda" else False
+
         train_loader = DataLoader(
             train_dataset,
             batch_size=self.batch_size,
             sampler=train_sampler,
-            num_workers=2,
-            pin_memory=True
+            num_workers=_num_workers,
+            pin_memory=_pin_memory
         )
-        
+
         val_loader = DataLoader(
             val_dataset,
             batch_size=self.batch_size,
             shuffle=False,
-            num_workers=2,
-            pin_memory=True
+            num_workers=_num_workers,
+            pin_memory=_pin_memory
         )
         
         print(f"  Train: {len(train_dataset):,} samples")
@@ -187,10 +193,11 @@ class Trainer:
                 # Backward pass
                 self.optimizer.zero_grad()
                 loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)  
                 self.optimizer.step()
                 
                 total_loss += loss.item() * images.size(0)
-                pbar.set_postfix({"loss": loss.item():.4f})
+                pbar.set_postfix({"loss": f"{loss.item():.4f}"})
         
         avg_loss = total_loss / len(train_loader.dataset)
         return avg_loss
@@ -235,7 +242,7 @@ class Trainer:
                         class_total[i] += mask.sum().item()
                         class_correct[i] += (preds[mask] == labels[mask]).sum().item()
                     
-                    pbar.set_postfix({"loss": loss.item():.4f})
+                    pbar.set_postfix({"loss": f"{loss.item():.4f}"})
         
         avg_loss = total_loss / len(val_loader.dataset)
         accuracy = correct / total
@@ -297,11 +304,11 @@ class Trainer:
                 if epoch == 0:
                     self.model.freeze_backbone()
                     print(f"Epoch {epoch}: Backbone FROZEN (training classifier only)")
-                elif epoch == 7:
+                elif epoch == 12:
                     self.model.unfreeze_backbone()
                     # Reduce learning rate for fine-tuning
                     for param_group in self.optimizer.param_groups:
-                        param_group["lr"] = 1e-4
+                        param_group["lr"] = 3e-5
                     print(f"Epoch {epoch}: Backbone UNFROZEN (fine-tuning all layers, lr=1e-4)")
             
             # Training
