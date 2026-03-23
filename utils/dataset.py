@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 from typing import Optional, Callable, Tuple
 
+import numpy as np
 import torch
 from torch.utils.data import Dataset, WeightedRandomSampler
 from torchvision import transforms
@@ -107,6 +108,8 @@ class AffectNetDataset(Dataset):
         """
         Get a single sample by index.
         
+        Handles corrupted images by retrying with linear interpolation.
+        
         Args:
             idx: Sample index (0-indexed)
             
@@ -114,20 +117,49 @@ class AffectNetDataset(Dataset):
             Tuple of (image_tensor, emotion_label_int) where:
             - image_tensor: RGB tensor of shape (3, 96, 96), normalized
             - emotion_label_int: emotion class label (0-7)
+            
+        Raises:
+            RuntimeError: If image cannot be loaded after retry
         """
-        sample = self.hf_split[idx]
-        
-        # Get PIL image (already RGB from AffectNet)
-        pil_image = sample["image"]
-        
-        # Ensure RGB (in case of edge cases)
-        if pil_image.mode != "RGB":
-            pil_image = pil_image.convert("RGB")
-        
-        # Apply transforms
-        tensor_image = self.transform(pil_image)
-        
-        # Get label as int
-        label = int(sample["label"])
-        
-        return tensor_image, label
+        try:
+            sample = self.hf_split[idx]
+            
+            # Get PIL image (already RGB from AffectNet)
+            pil_image = sample["image"]
+            
+            # Ensure RGB (in case of edge cases)
+            if pil_image.mode != "RGB":
+                pil_image = pil_image.convert("RGB")
+            
+            # Apply transforms
+            tensor_image = self.transform(pil_image)
+            
+            # Get label as int
+            label = int(sample["label"])
+            
+            return tensor_image, label
+            
+        except Exception as e:
+            # BUG FIX: Retry with alternative resizing method for corrupted images
+            try:
+                sample = self.hf_split[idx]
+                pil_image = sample["image"]
+                
+                if pil_image.mode != "RGB":
+                    pil_image = pil_image.convert("RGB")
+                
+                # Fallback: resize with LANCZOS instead of stored default
+                pil_image = pil_image.resize((96, 96), Image.LANCZOS)
+                tensor_image = torch.from_numpy(np.array(pil_image)).float()
+                tensor_image = tensor_image.permute(2, 0, 1) / 255.0
+                
+                # Apply normalization
+                mean = torch.tensor(IMAGENET_MEAN).view(3, 1, 1)
+                std = torch.tensor(IMAGENET_STD).view(3, 1, 1)
+                tensor_image = (tensor_image - mean) / std
+                
+                label = int(sample["label"])
+                return tensor_image, label
+                
+            except Exception as retry_err:
+                raise RuntimeError(f"Failed to load image at index {idx}: {retry_err}")

@@ -54,16 +54,33 @@ class EmotionHistory:
     
     def add(self, emotion: str, confidence: float) -> None:
         """
-        Add emotion detection to history.
+        Add emotion detection to history with validation.
         
         Args:
             emotion: Emotion name (e.g., "happy", "sad")
             confidence: Confidence score (0.0-1.0)
             
+        Raises:
+            ValueError: If emotion is invalid or confidence is out of range
+            
         Example:
             >>> history = EmotionHistory()
             >>> history.add("happy", 0.92)
         """
+        # BUG FIX: Input validation to prevent data corruption
+        if not isinstance(emotion, str):
+            raise ValueError(f"emotion must be string, got {type(emotion)}")
+        
+        emotion = emotion.lower().strip()
+        if emotion not in NAVARASA_MAPPING:
+            raise ValueError(f"Invalid emotion '{emotion}'. Must be one of: {list(NAVARASA_MAPPING.keys())}")
+        
+        if not isinstance(confidence, (int, float)):
+            raise ValueError(f"confidence must be numeric, got {type(confidence)}")
+        
+        if not (0.0 <= confidence <= 1.0):
+            raise ValueError(f"confidence must be in [0.0, 1.0], got {confidence}")
+        
         record = {
             "emotion": emotion,
             "navarasa": NAVARASA_MAPPING.get(emotion, {}).get("navarasa", "Unknown"),

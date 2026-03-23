@@ -101,6 +101,14 @@ def preprocess_spotify() -> int:
             max_val = songs_df[feature].max()
             mean_val = songs_df[feature].mean()
             print(f"    {feature:15}: min={min_val:7.3f}, max={max_val:7.3f}, mean={mean_val:7.3f}")
+            
+            # BUG FIX: Validate and clamp audio feature ranges [0.0, 1.0]
+            # Some datasets have slightly out-of-range values due to rounding
+            if feature in ["valence", "energy", "danceability"]:
+                out_of_range = ((songs_df[feature] < 0.0) | (songs_df[feature] > 1.0)).sum()
+                if out_of_range > 0:
+                    print(f"      ⚠️ Found {out_of_range} out-of-range values, clamping to [0.0, 1.0]")
+                    songs_df[feature] = songs_df[feature].clip(0.0, 1.0)
         
         # Create data directory if it doesn't exist
         data_dir = Path(__file__).parent.parent / "data"

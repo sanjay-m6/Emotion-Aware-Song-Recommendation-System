@@ -39,6 +39,8 @@ def load_model(
     """
     Load a trained model from checkpoint.
     
+    Handles both CPU and GPU loading, with proper device management.
+    
     Args:
         model_type: "custom_cnn" or "mobilenet"
         checkpoint_path: Path to .pth checkpoint file
@@ -50,10 +52,24 @@ def load_model(
     Raises:
         FileNotFoundError: If checkpoint doesn't exist
         RuntimeError: If checkpoint format is invalid
+        ValueError: If model_type is unknown
     """
     checkpoint_path = Path(checkpoint_path)
     if not checkpoint_path.exists():
         raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
+    
+    # Validate device and auto-fallback if needed
+    valid_devices = ["cpu", "cuda", "mps"]
+    if device not in valid_devices:
+        device = "cpu"
+    
+    # Auto-fallback if device not available
+    if device == "cuda" and not torch.cuda.is_available():
+        print(f"⚠️ CUDA not available, falling back to CPU")
+        device = "cpu"
+    elif device == "mps" and not torch.backends.mps.is_available():
+        print(f"⚠️ MPS not available, falling back to CPU")
+        device = "cpu"
     
     # Initialize model
     if model_type == "custom_cnn":
@@ -61,11 +77,21 @@ def load_model(
     elif model_type == "mobilenet":
         model = MobileNetV2Model(pretrained=False)
     else:
-        raise ValueError(f"Unknown model_type: {model_type}")
+        raise ValueError(f"Unknown model_type: {model_type}. Must be 'custom_cnn' or 'mobilenet'")
     
-    # Load checkpoint
-    checkpoint = torch.load(checkpoint_path, map_location=device)
-    model.load_state_dict(checkpoint["model_state_dict"])
+    # Load checkpoint with device mapping
+    try:
+        checkpoint = torch.load(checkpoint_path, map_location=device)
+    except Exception as e:
+        raise RuntimeError(f"Failed to load checkpoint: {e}")
+    
+    # BUG FIX: Handle both 'state_dict' and direct model loading
+    if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
+        model.load_state_dict(checkpoint["model_state_dict"])
+    else:
+        # Direct state dict
+        model.load_state_dict(checkpoint)
+    
     model.to(device)
     model.eval()
     

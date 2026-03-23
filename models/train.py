@@ -13,10 +13,9 @@ Supports:
 import sys
 import json
 import argparse
+import warnings
 from pathlib import Path
 from typing import Tuple, Dict, Optional
-import warnings
-warnings.filterwarnings("ignore")
 
 import numpy as np
 import torch
@@ -26,6 +25,17 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
 from datasets import load_dataset
 from tqdm import tqdm
+
+# Set random seeds for reproducibility
+RANDOM_SEED = 42
+np.random.seed(RANDOM_SEED)
+torch.manual_seed(RANDOM_SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(RANDOM_SEED)
+
+# Only suppress specific irrelevant warnings, not all warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="torchvision")
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -299,17 +309,19 @@ class Trainer:
         print(f"{'='*70}\n")
         
         for epoch in range(self.epochs):
-            # MobileNetV2: unfreeze backbone at epoch 8
+            # MobileNetV2: progressive unfreezing strategy
+            # Epochs 0-11: freeze backbone (learn classifier only)
+            # Epoch 12+: unfreeze backbone (fine-tune with lower LR)
             if self.model_type == "mobilenet":
                 if epoch == 0:
                     self.model.freeze_backbone()
-                    print(f"Epoch {epoch}: Backbone FROZEN (training classifier only)")
+                    print(f"Epoch {epoch}: Backbone FROZEN (training classifier head only)")
                 elif epoch == 12:
                     self.model.unfreeze_backbone()
-                    # Reduce learning rate for fine-tuning
+                    # Reduce learning rate for fine-tuning to avoid catastrophic forgetting
                     for param_group in self.optimizer.param_groups:
                         param_group["lr"] = 3e-5
-                    print(f"Epoch {epoch}: Backbone UNFROZEN (fine-tuning all layers, lr=1e-4)")
+                    print(f"Epoch {epoch}: Backbone UNFROZEN (fine-tuning all layers with lr=3e-5)")
             
             # Training
             train_loss = self.train_epoch(train_loader)
