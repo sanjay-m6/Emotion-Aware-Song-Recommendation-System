@@ -306,19 +306,6 @@ This notebook will:
 
 ---
 
-## 🎯 Key Improvements (v2.0)
-
-| Area | What Changed |
-|------|-------------|
-| **Architecture** | Migrated from monolithic Streamlit → React/Flask decoupled architecture |
-| **Model** | Replaced DeepFace with custom-trained CNN on AffectNet for better accuracy |
-| **Filtering** | Optimized audio feature ranges to prevent "emotion bleeding" across moods |
-| **Stability** | 0.40 confidence threshold to reject uncertain detections (falls back to Neutral) |
-| **YouTube** | Added stress-relief video recommendations for all emotional states |
-| **Chat Mode** | New conversational AI (Emora) for text-based mood analysis |
-
----
-
 ## 📄 Project Documentation
 
 For detailed project reports, architecture diagrams, and academic documentation:
@@ -329,7 +316,9 @@ For detailed project reports, architecture diagrams, and academic documentation:
 
 ## ⚖️ License & Citation
 
-This project is for educational purposes. It utilizes:
+This project is licensed under the [MIT License](LICENSE).
+
+It utilizes the following resources for educational purposes:
 - **AffectNet**: Mollahosseini et al. (2019)
 - **Spotify Tracks Dataset**: [maharshipandya/spotify-tracks-dataset](https://huggingface.co/datasets/maharshipandya/spotify-tracks-dataset)
 
