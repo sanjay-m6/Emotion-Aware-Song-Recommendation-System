@@ -405,7 +405,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.constants import (
     EMOTION_AUDIO_PROFILES,
     ROMANTIC_GENRES,
-    NAVARASA_MAPPING
+    EMOTION_DISPLAY_MAPPING
 )
 
 
@@ -618,7 +618,7 @@ def get_navarasa_playlist(
     filtered = songs_df[mask].sort_values("popularity", ascending=False).head(n)
 
     result = []
-    nav = NAVARASA_MAPPING.get(emotion, {})
+    nav = EMOTION_DISPLAY_MAPPING.get(emotion, {})
     keep_cols = [
         "track_name", "artists", "track_genre",
         "valence", "energy", "danceability", "popularity"
@@ -628,7 +628,7 @@ def get_navarasa_playlist(
     for _, row in filtered.iterrows():
         rec = {c: row[c] for c in keep_cols}
         rec.update({
-            "navarasa": nav.get("navarasa", ""),
+            "display_name": nav.get("display_name", ""),
             "meaning":  nav.get("meaning", ""),
             "emoji":    nav.get("emoji", ""),
         })

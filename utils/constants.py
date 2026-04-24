@@ -224,18 +224,17 @@ EMOTION_NAMES = [
     "neutral", "fear", "sad", "disgust"
 ]
 
-# ── Navarasa ──────────────────────────────────────────────────────────────────
+# ── Emotion Display ────────────────────────────────────────────────────────────
 
-NAVARASA_MAPPING = {
-    "anger":     {"navarasa": "Raudra",    "meaning": "Fury",    "emoji": "😠"},
-    "surprise":  {"navarasa": "Adbhuta",   "meaning": "Wonder",  "emoji": "😲"},
-    "contempt":  {"navarasa": "Vira",      "meaning": "Heroism", "emoji": "😤"},
-    "happy":     {"navarasa": "Hasya",     "meaning": "Joy",     "emoji": "😄"},
-    "neutral":   {"navarasa": "Shanta",    "meaning": "Peace",   "emoji": "😌"},
-    "fear":      {"navarasa": "Bhayanaka", "meaning": "Terror",  "emoji": "😨"},
-    "sad":       {"navarasa": "Karuna",    "meaning": "Sorrow",  "emoji": "😢"},
-    "disgust":   {"navarasa": "Bibhatsa",  "meaning": "Disgust", "emoji": "🤢"},
-    "shringara": {"navarasa": "Shringara", "meaning": "Love",    "emoji": "🥰"},
+EMOTION_DISPLAY_MAPPING = {
+    "anger":     {"display_name": "Anger",    "meaning": "Fury",    "emoji": "😠"},
+    "surprise":  {"display_name": "Surprise", "meaning": "Wonder",  "emoji": "😲"},
+    "contempt":  {"display_name": "Contempt", "meaning": "Heroism", "emoji": "😤"},
+    "happy":     {"display_name": "Happy",    "meaning": "Joy",     "emoji": "😄"},
+    "neutral":   {"display_name": "Neutral",  "meaning": "Peace",   "emoji": "😌"},
+    "fear":      {"display_name": "Fear",     "meaning": "Terror",  "emoji": "😨"},
+    "sad":       {"display_name": "Sad",      "meaning": "Sorrow",  "emoji": "😢"},
+    "disgust":   {"display_name": "Disgust",  "meaning": "Disgust", "emoji": "🤢"},
 }
 
 # ── Colors ────────────────────────────────────────────────────────────────────

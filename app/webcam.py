@@ -451,13 +451,13 @@ class EmotionDetector:
 
         self.device     = torch.device(device)
         self._model_type = model_type
-        print(f"✅ EmotionDetector using device: {self.device}")
+        print(f"[OK] EmotionDetector using device: {self.device}")
 
         # Load model
         try:
             self.model = load_model(model_type, model_path, device=str(self.device))
             self.model.eval()
-            print(f"✅ Loaded {model_type} from {model_path}")
+            print(f"[OK] Loaded {model_type} from {model_path}")
         except Exception as e:
             raise RuntimeError(f"Failed to load model: {e}")
 

@@ -20,50 +20,46 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.constants import LABEL_TO_EMOTION
 
 
-class ConvBlock(nn.Module):
+class ResidualBlock(nn.Module):
     """
-    Standard convolutional block with batch norm, ReLU, max pool, and dropout.
-    
-    Attributes:
-        conv: Conv2d layer
-        bn: BatchNorm2d layer
-        relu: ReLU activation
-        pool: MaxPool2d layer
-        dropout: Spatial dropout (Dropout2d)
+    Residual convolutional block with batch norm, ReLU, max pool, and dropout.
+    Uses a shortcut connection to prevent vanishing gradients.
     """
     
     def __init__(self, in_channels: int, out_channels: int, dropout_rate: float = 0.25) -> None:
-        """
-        Initialize ConvBlock.
-        
-        Args:
-            in_channels: Number of input channels
-            out_channels: Number of output channels
-            dropout_rate: Dropout rate (default 0.25)
-        """
-        super(ConvBlock, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
-        self.bn = nn.BatchNorm2d(out_channels)
+        super(ResidualBlock, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU(inplace=True)
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         self.dropout = nn.Dropout2d(p=dropout_rate)
-    
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Forward pass through conv block.
         
-        Args:
-            x: Input tensor of shape (batch, in_channels, height, width)
+        # Shortcut connection
+        self.shortcut = nn.Sequential()
+        if in_channels != out_channels:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, bias=False),
+                nn.BatchNorm2d(out_channels)
+            )
             
-        Returns:
-            Output tensor of shape (batch, out_channels, height/2, width/2)
-        """
-        x = self.conv(x)
-        x = self.bn(x)
-        x = self.relu(x)
-        x = self.pool(x)
-        x = self.dropout(x)
-        return x
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        residual = self.shortcut(x)
+        
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        
+        out = self.conv2(out)
+        out = self.bn2(out)
+        
+        out += residual  # Residual connection
+        out = self.relu(out)
+        
+        out = self.pool(out)
+        out = self.dropout(out)
+        return out
 
 
 class CustomCNN(nn.Module):
@@ -71,36 +67,35 @@ class CustomCNN(nn.Module):
     Custom CNN for 8-class emotion detection from 96x96 RGB images.
     
     Architecture:
-    - Conv Block 1: 3 → 32 channels
-    - Conv Block 2: 32 → 64 channels
-    - Conv Block 3: 64 → 128 channels
-    - Conv Block 4: 128 → 256 channels
-    - Conv Block 5: 256 → 512 channels
-    - FC Head: 512*3*3 → 1024 → 256 → 8
+    - Res Block 1: 3 → 32 channels
+    - Res Block 2: 32 → 64 channels
+    - Res Block 3: 64 → 128 channels
+    - Res Block 4: 128 → 256 channels
+    - Res Block 5: 256 → 512 channels
+    - Global Avg Pool + FC Head: 512 → 8
     
     Input shape: (batch, 3, 96, 96)
     Output shape: (batch, 8) — logits
     """
     
     def __init__(self) -> None:
-        """Initialize CustomCNN with 5 conv blocks and FC head."""
+        """Initialize CustomCNN with 5 residual blocks and Global Avg Pool head."""
         super(CustomCNN, self).__init__()
         
         # Convolutional layers
-        self.conv_block1 = ConvBlock(3, 32, dropout_rate=0.25)
-        self.conv_block2 = ConvBlock(32, 64, dropout_rate=0.25)
-        self.conv_block3 = ConvBlock(64, 128, dropout_rate=0.25)
-        self.conv_block4 = ConvBlock(128, 256, dropout_rate=0.25)
-        self.conv_block5 = ConvBlock(256, 512, dropout_rate=0.25)
+        self.conv_block1 = ResidualBlock(3, 32, dropout_rate=0.25)
+        self.conv_block2 = ResidualBlock(32, 64, dropout_rate=0.25)
+        self.conv_block3 = ResidualBlock(64, 128, dropout_rate=0.25)
+        self.conv_block4 = ResidualBlock(128, 256, dropout_rate=0.25)
+        self.conv_block5 = ResidualBlock(256, 512, dropout_rate=0.25)
         
         # Fully connected head
-        # After 5 max pools: 96 → 48 → 24 → 12 → 6 → 3
+        self.global_pool = nn.AdaptiveAvgPool2d((1, 1))
         self.flatten = nn.Flatten()
-        self.fc1 = nn.Linear(512 * 3 * 3, 1024)
+        self.fc1 = nn.Linear(512, 256)
         self.relu = nn.ReLU(inplace=True)
         self.dropout = nn.Dropout(p=0.5)
-        self.fc2 = nn.Linear(1024, 256)
-        self.fc3 = nn.Linear(256, 8)
+        self.fc2 = nn.Linear(256, 8)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -119,14 +114,14 @@ class CustomCNN(nn.Module):
         x = self.conv_block4(x)
         x = self.conv_block5(x)
         
-        # Fully connected layers
+        # Global Average Pooling and FC
+        x = self.global_pool(x)
         x = self.flatten(x)
+        
         x = self.fc1(x)
         x = self.relu(x)
         x = self.dropout(x)
         x = self.fc2(x)
-        x = self.relu(x)
-        x = self.fc3(x)
         
         return x
     

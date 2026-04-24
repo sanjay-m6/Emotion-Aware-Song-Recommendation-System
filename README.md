@@ -1,341 +1,285 @@
-# 🎭 Navarasa — Emotion-Aware Music Recommendation System
+# 🎭 Emotion-Aware Song Recommendation System
 
-> Bridging ancient Indian emotional theory with modern deep learning
+> **Bridging Facial Expression Recognition with Modern Music Intelligence**
 
-Detect your facial emotion in real-time using a CNN trained on AffectNet 8-class dataset, map it to the ancient Indian Navarasa (9 rasas) framework, and receive Spotify song recommendations personalized to your emotional state.
-
----
-
-## 📊 Project Overview
-
-This system combines:
-- **Deep Learning**: Custom CNN and MobileNetV2 trained on 29k+ AffectNet images
-- **Traditional Knowledge**: Ancient Indian Navarasa emotional framework (Fury, Wonder, Heroism, Joy, Peace, Terror, Sorrow, Disgust, Love)
-- **Music Intelligence**: Audio feature filtering (valence, energy, danceability) from 100k+ Spotify tracks
-- **Real-Time Detection**: Live webcam emotion detection with Navarasa overlay
-- **Web App**: Streamlit UI with dark theme inspired by Spotify
-
-### Architecture
-
-```
-Webcam Frame
-    ↓
-OpenCV Haar Cascade Face Detection
-    ↓
-Preprocess to 96×96 RGB
-    ↓
-CNN Model (CustomCNN or MobileNetV2)
-    ↓
-Emotion Class + Confidence (8 emotions)
-    ↓
-Map to Navarasa Framework
-    ↓
-Contextual Shringara Inference
-    ↓
-Audio Profile Filter (valence/energy/danceability)
-    ↓
-Spotify Dataset Search
-    ↓
-Return Top 5 Songs + Display to User
-```
+A full-stack application that uses real-time facial emotion detection to deliver personalized Tamil & English music recommendations. Built with **React + Vite** on the frontend and **Flask + PyTorch** on the backend, powered by the **Spotify API** and an **NVIDIA LLM** for intelligent curation.
 
 ---
 
-## 🎭 The 9 Navarasa
+## 📸 Screenshots
 
-| Rasa | Emotion | Meaning | Emoji | Detected? |
-|------|---------|---------|-------|-----------|
-| Raudra | Anger | Fury | 😠 | ✅ |
-| Adbhuta | Surprise | Wonder | 😲 | ✅ |
-| Vira | Contempt | Heroism | 😤 | ✅ |
-| Hasya | Happy | Joy | 😄 | ✅ |
-| Shanta | Neutral | Peace | 😌 | ✅ |
-| Bhayanaka | Fear | Terror | 😨 | ✅ |
-| Karuna | Sad | Sorrow | 😢 | ✅ |
-| Bibhatsa | Disgust | Disgust | 🤢 | ✅ |
-| Shringara | Happy (contextual) | Love | 🥰 | ✅\* |
+### 🏠 Home Page
+![Home Page](frontend/public/image/Screenshot_1.png)
 
-\* *Shringara is inferred contextually: happy emotion + high confidence (>0.75) + romantic music history*
+### 🎥 Detect Mood — Webcam Emotion Detection
+![Detect Mood](frontend/public/image/Screenshot_2.png)
+
+### 💬 Chat with Emora — AI Music Curator
+![Chat Mode](frontend/public/image/Screenshot_3.png)
+
+### 📊 Mood Insights — History Dashboard
+![Mood Insights](frontend/public/image/Screenshot_4.png)
 
 ---
 
-## 📦 Datasets
+## ✨ Features
 
-### Dataset 1: AffectNet 8-Class Emotion Dataset
-- **Source**: [Mauregato/affectnet_short](https://huggingface.co/datasets/Mauregato/affectnet_short)
-- **Size**: 29,042 RGB images (96×96)
-- **Split**: Train 23.2k / Val 5.81k
-- **License**: Research use
-- **Classes**: 8 emotions with balanced sampling via WeightedRandomSampler
+| Feature | Description |
+|---------|-------------|
+| 🎥 **Real-Time Emotion Detection** | Live webcam analysis using a custom CNN trained on AffectNet (29k+ images) |
+| 💬 **Chat with Emora** | Conversational AI that understands your mood and picks songs for you |
+| 🎵 **Smart Recommendations** | Tamil & English tracks curated via Spotify audio features (valence, energy, danceability) |
+| 🧘 **YouTube Therapy Videos** | Automatically suggests stress-relief & meditation content based on detected mood |
+| 📊 **Mood Dashboard** | Session-level mood history with emotion distribution stats |
+| 🎨 **Premium UI** | Dark-themed glassmorphism design with smooth animations |
 
-### Dataset 2: Spotify Tracks Dataset
-- **Source**: [maharshipandya/spotify-tracks-dataset](https://huggingface.co/datasets/maharshipandya/spotify-tracks-dataset)
-- **Size**: 100k+ tracks with audio features
-- **License**: MIT
-- **Features**: valence, energy, danceability, tempo, popularity, genre
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Frontend** | React.js, Vite, React Router v6, Vanilla CSS |
+| **Backend** | Flask, Flask-CORS, python-dotenv |
+| **Deep Learning** | PyTorch, Custom CNN (ResNet-style), OpenCV |
+| **AI Curation** | NVIDIA LLM via OpenAI SDK |
+| **Music API** | Spotify Web API (Client Credentials) |
+| **Data** | Pandas, NumPy, scikit-learn, AffectNet dataset |
 
 ---
 
 ## 📁 Project Structure
 
 ```
-emotion-music-recommender/
-├── data/
-│   ├── setup_datasets.py          # Load & validate HF datasets
-│   └── songs_cache.parquet        # Cached Spotify tracks (generated)
+Emotion-Aware-Song-Recommendation-System/
 │
-├── models/
-│   ├── custom_cnn.py              # CNN from scratch (8 conv blocks + FC)
-│   ├── mobilenet_model.py         # Transfer learning with MobileNetV2
-│   ├── train.py                   # Unified training script
-│   └── checkpoints/               # Best model saves
-│       ├── custom_cnn_best.pth
-│       ├── custom_cnn_history.json
-│       ├── mobilenet_best.pth
-│       └── mobilenet_history.json
+├── backend/                    # Flask API Server
+│   ├── main.py                 # App entry point — creates Flask app, loads model
+│   ├── .env.example            # Environment variables template
+│   ├── routes/
+│   │   ├── api_routes.py       # Core API — /detect-emotion, /recommendations, /chat
+│   │   └── auth_routes.py      # Spotify OAuth routes
+│   └── services/
+│       ├── emotion_service.py  # Loads CNN model, processes webcam frames
+│       ├── spotify_service.py  # Spotify API integration & track search
+│       └── ai_service.py       # NVIDIA LLM for music parameter generation
 │
-├── utils/
-│   ├── constants.py               # Single source of truth for all mappings
-│   ├── dataset.py                 # AffectNetDataset with WeightedRandomSampler
-│   ├── evaluate.py                # Model evaluation & comparison tools
-│   └── emotion_history.py         # Session tracking + visualization
+├── frontend/                   # React Application (Vite)
+│   ├── src/
+│   │   ├── App.jsx             # Root component with routing
+│   │   ├── main.jsx            # React entry point
+│   │   ├── index.css           # Global design system & tokens
+│   │   ├── components/
+│   │   │   ├── DetectPage.jsx  # Webcam emotion detection + recommendations
+│   │   │   ├── ChatPage.jsx    # Chat with Emora AI
+│   │   │   ├── MoodDashboard.jsx # Mood history & stats
+│   │   │   ├── HeroSection.jsx # Landing page hero
+│   │   │   ├── Navbar.jsx      # Top navigation bar
+│   │   │   ├── Footer.jsx      # Page footer
+│   │   │   └── SongCard.jsx    # Individual song card (preview, like, open)
+│   │   ├── hooks/
+│   │   │   ├── useWebcam.js    # Webcam start/stop/capture
+│   │   │   ├── useEmotionDetection.js # Send frame to backend, get emotion
+│   │   │   └── useAuth.js      # Auth state management
+│   │   └── utils/
+│   │       └── api.js          # API client for all backend calls
+│   └── vite.config.js          # Build configuration
 │
-├── music/
-│   ├── preprocess_songs.py        # Load & cache Spotify dataset
-│   └── recommendations.py         # Emotion → audio profile → songs
+├── models/                     # ML Model Layer
+│   ├── custom_cnn.py           # ResNet-style CNN architecture (8 emotions)
+│   ├── mobilenet_model.py      # Alternative MobileNet architecture
+│   ├── train.py                # Training script (AffectNet dataset)
+│   └── checkpoints/            # Saved model weights (.pth files)
 │
-├── app/
-│   ├── webcam.py                  # Real-time emotion detector
-│   └── ui.py                      # Streamlit web interface
+├── utils/                      # Shared Python Utilities
+│   ├── constants.py            # Emotion mappings, colors, display names
+│   ├── dataset.py              # Dataset loading & image transforms
+│   ├── emotion_history.py      # Mood history tracking
+│   └── evaluate.py             # Model evaluation metrics
+│
+├── data/                       # Data Layer
+│   ├── setup_datasets.py       # AffectNet dataset setup script
+│   └── songs_cache.parquet     # Cached Spotify tracks dataset
+│
+├── music/                      # Music Processing
+│   ├── preprocess_songs.py     # Song data preprocessing
+│   └── recommendations.py     # Recommendation engine logic
+│
+├── app/                        # Legacy Streamlit App (v1.0)
+│   ├── ui.py                   # Old Streamlit UI
+│   └── webcam.py               # Old webcam handler
 │
 ├── notebooks/
-│   └── comparison.ipynb           # Model comparison & analysis
+│   └── comparison.ipynb        # Model comparison notebook
 │
-├── requirements.txt
-└── README.md
+├── requirements.txt            # Python dependencies
+├── FIXES_SUMMARY.md            # Root cause analysis & bug fixes
+└── README.md                   # This file
 ```
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Clone & Setup Environment
+### Step 1 — Prerequisites
+
+| Tool | Version | Download |
+|------|---------|----------|
+| Python | 3.9+ | [python.org](https://www.python.org/downloads/) |
+| Node.js | 18+ | [nodejs.org](https://nodejs.org/) |
+| Git | Any | [git-scm.com](https://git-scm.com/) |
+
+You'll also need a **Spotify Developer Account** — [create one here](https://developer.spotify.com/dashboard) (free).
+
+### Step 2 — Clone the Repository
 
 ```bash
 git clone https://github.com/Sansii18/Emotion-Aware-Song-Recommendation-System.git
-cd emotion-music-recommender
+cd Emotion-Aware-Song-Recommendation-System
+```
 
-# Create virtual environment
+### Step 3 — Configure Environment Variables
+
+```bash
+cd backend
+copy .env.example .env        # Windows
+# cp .env.example .env        # Mac/Linux
+```
+
+Open `backend/.env` in any text editor and fill in your keys:
+
+```env
+# ── Required ──
+# Get these from https://developer.spotify.com/dashboard → Create App
+SPOTIFY_CLIENT_ID=paste_your_client_id
+SPOTIFY_CLIENT_SECRET=paste_your_client_secret
+SPOTIFY_REDIRECT_URI=http://localhost:5000/api/auth/callback
+
+# ── Optional ──
+# Enables AI-powered music curation (get from https://build.nvidia.com)
+NVIDIA_API_KEY=paste_your_nvidia_key
+
+# ── Server Config (leave as defaults) ──
+FLASK_SECRET_KEY=change-this-to-a-random-string
+FLASK_ENV=development
+FLASK_PORT=5000
+FRONTEND_URL=http://localhost:5173
+```
+
+### Step 4 — Install & Run Backend
+
+```bash
+# From the project root folder:
+
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+venv\Scripts\activate          # Windows
+# source venv/bin/activate     # Mac/Linux
 
-# Install dependencies
 pip install -r requirements.txt
+
+python backend/main.py
 ```
 
-### 2. Load & Cache Datasets
+✅ You should see: `[OK] Flask backend ready` — the server runs on **http://localhost:5000**
+
+### Step 5 — Install & Run Frontend
+
+Open a **new terminal** (keep the backend running):
 
 ```bash
-# Download AffectNet & Spotify datasets, verify integrity, cache Spotify
-python data/setup_datasets.py
-python music/preprocess_songs.py
-
-# Expected output:
-# ✅ Dataset 1 (AffectNet) loaded successfully — 29,042 samples
-# ✅ Dataset 2 (Spotify) loaded successfully — 100,000+ tracks cached
+cd frontend
+npm install
+npm run dev
 ```
 
-### 3. Train Models
+✅ The app opens at **http://localhost:5173**
 
+### Step 6 — You're Done! 🎉
+
+| Service | URL |
+|---------|-----|
+| Frontend (UI) | [http://localhost:5173](http://localhost:5173) |
+| Backend (API) | [http://localhost:5000](http://localhost:5000) |
+| Health Check | [http://localhost:5000/api/health](http://localhost:5000/api/health) |
+
+> **Tip:** Both terminals must stay open. The backend serves the AI & Spotify APIs, and the frontend is the UI you interact with.
+
+---
+
+## ⚡ One-Command Startup
+
+After completing the initial setup once, start the entire app with a single command:
+
+**Windows (PowerShell):**
+```powershell
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd 'c:\Users\sanja\Emotion-Aware-Song-Recommendation-System'; python backend/main.py" ; cd frontend; npm run dev
+```
+
+**Mac / Linux:**
 ```bash
-# Train CustomCNN (60 epochs, batch size 64)
-python models/train.py --model custom_cnn --epochs 60 --batch_size 64
-
-# Train MobileNetV2 (60 epochs, batch size 32)
-python models/train.py --model mobilenet --epochs 60 --batch_size 32
-
-# Expected output:
-# ✅ Training complete!
-#   Best Val Accuracy: 0.7234
-#   Best Epoch: 42
-#   Checkpoint: models/checkpoints/mobilenet_best.pth
+python backend/main.py & cd frontend && npm run dev
 ```
 
-### 4. Evaluate & Compare Models
+---
 
-Open and run the Jupyter notebook:
+## 🎵 How It Works
 
-```bash
-jupyter notebook notebooks/comparison.ipynb
+```
+┌──────────────┐     base64 frame     ┌──────────────────┐     Spotify API     ┌────────────┐
+│   React UI   │ ──────────────────▶  │   Flask Backend   │ ────────────────▶  │  Spotify   │
+│  (Webcam)    │                      │                    │                    │  Web API   │
+└──────────────┘  ◀──────────────────  │  ┌──────────────┐ │  ◀────────────────  └────────────┘
+                   emotion + tracks   │  │  Custom CNN   │ │    track results
+                                      │  │  (PyTorch)    │ │
+                                      │  └──────────────┘ │
+                                      │  ┌──────────────┐ │
+                                      │  │  NVIDIA LLM   │ │
+                                      │  │  (AI Curator) │ │
+                                      │  └──────────────┘ │
+                                      └──────────────────┘
 ```
 
-This notebook will:
-- Load both trained models
-- Plot training curves (loss, accuracy)
-- Display confusion matrices for each emotion
-- Print classification reports highlighting contempt F1
-- Benchmark inference speed and model size
-- Provide deployment recommendation
-
-### 5. Run Web App
-
-```bash
-streamlit run app/ui.py
-```
-
-Opens at `http://localhost:8501`
+1. **Face Capture** — The React frontend captures webcam frames and sends them as base64 to the backend.
+2. **Emotion Detection** — The Custom CNN processes the image, detecting one of 8 emotions: `Happy`, `Sad`, `Anger`, `Fear`, `Surprise`, `Disgust`, `Contempt`, `Neutral`.
+3. **AI Curation** — The NVIDIA LLM analyzes the emotion + confidence to generate optimal Spotify audio feature targets.
+4. **Track Search** — The Spotify API returns high-popularity Tamil & English tracks matching the emotional profile.
+5. **YouTube Therapy** — For negative emotions, therapeutic meditation/stress-relief videos are recommended alongside music.
 
 ---
 
-## 🎯 Training Results
+## 🔌 API Reference
 
-### Model Comparison
-
-| Metric | CustomCNN | MobileNetV2 |
-|--------|-----------|-------------|
-| Val Accuracy | ~70% | ~68% |
-| Contempt F1 | Low | Better |
-| Parameters | 2.1M | 3.5M |
-| Inference Time | 15ms | 25ms |
-| Model Size | 8.5 MB | 13.2 MB |
-
-**Recommendation**: Deploy **MobileNetV2** for better robustness despite slightly higher latency.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/detect-emotion` | Detect emotion from base64 webcam frame |
+| `GET` | `/api/recommendations` | Get Spotify tracks for an emotion |
+| `POST` | `/api/chat` | Chat with Emora AI for music recommendations |
+| `GET` | `/api/mood-history` | Get session mood history & stats |
+| `GET` | `/api/health` | Server health check |
 
 ---
 
-## 🎵 How Navarasa Mapping Works
+## 🎯 Key Improvements (v2.0)
 
-### Emotion → Audio Profile
-
-Each emotion maps to a range of Spotify audio features:
-
-```python
-EMOTION_AUDIO_PROFILES = {
-    "anger":    {"valence": (0.0, 0.35), "energy": (0.75, 1.0), ...},
-    "happy":    {"valence": (0.7, 1.0),  "energy": (0.6, 1.0),  ...},
-    "sad":      {"valence": (0.0, 0.3),  "energy": (0.0, 0.4),  ...},
-    ...
-}
-```
-
-### Contextual Shringara Inference
-
-When detected emotion is "happy" with high confidence (>0.75) AND user's recent play history includes romantic genres (R&B, soul, indie), the system upgrades to **Shringara** (Love rasa), yielding different song recommendations.
+| Area | What Changed |
+|------|-------------|
+| **Architecture** | Migrated from monolithic Streamlit → React/Flask decoupled architecture |
+| **Model** | Replaced DeepFace with custom-trained CNN on AffectNet for better accuracy |
+| **Filtering** | Optimized audio feature ranges to prevent "emotion bleeding" across moods |
+| **Stability** | 0.40 confidence threshold to reject uncertain detections (falls back to Neutral) |
+| **YouTube** | Added stress-relief video recommendations for all emotional states |
+| **Chat Mode** | New conversational AI (Emora) for text-based mood analysis |
 
 ---
 
-## 🎧 How Emotion-to-Music Works
+## ⚖️ License & Citation
 
-1. **Detect emotion** from facial expression → confidence score
-2. **Map to audio profile** using EMOTION_AUDIO_PROFILES
-3. **Fall back to neutral** if confidence < 0.5 (uncertain detection)
-4. **Filter Spotify tracks** by valence/energy/danceability ranges
-5. **Exclude recently played** songs (last 10 tracks)
-6. **Sort by popularity** and return top 5
-7. **Record in history** for Shringara inference
+This project is for educational purposes. It utilizes:
+- **AffectNet**: Mollahosseini et al. (2019)
+- **Spotify Tracks Dataset**: [maharshipandya/spotify-tracks-dataset](https://huggingface.co/datasets/maharshipandya/spotify-tracks-dataset)
 
 ---
 
-## 💡 Key Features
-
-### Real-Time Detection
-- ✅ Live webcam input with <50ms latency (CPU)
-- ✅ Haar Cascade face detection + CNN inference
-- ✅ Confidence-based filtering
-- ✅ FPS counter overlay
-
-### Music Recommendations
-- ✅ 5 personalized songs per emotion
-- ✅ Contextual Shringara upgrade
-- ✅ Audio feature display (valence, energy, danceability, popularity)
-- ✅ Spotify-inspired UI with dark theme
-
-### Session Analytics
-- ✅ Emotion timeline visualization
-- ✅ Navarasa frequency chart
-- ✅ Session statistics (total detections, dominant emotion, duration)
-- ✅ Save session as JSON for later analysis
-
-### Model Comparison
-- ✅ Training curve comparison
-- ✅ Confusion matrices
-- ✅ Per-emotion F1 scores (watch contempt!)
-- ✅ Inference benchmarking
-- ✅ Deployment recommendation
-
----
-
-## ⚙️ Configuration
-
-### Confidence Threshold
-Set in Streamlit sidebar (0.3–0.9, default 0.5). Detections below this are ignored for recommendations.
-
-### Model Selection
-Choose between:
-- **MobileNetV2 (Recommended)**: Better accuracy, transfer learning advantage
-- **Custom CNN**: Simpler, faster inference
-
-### Recent History Windows
-- Last 10 tracks: For recommendation exclusion
-- Last 5 genres: For Shringara inference
-- Last 30 seconds: For dominant emotion calculation
-
----
-
-## 🔮 Future Work
-
-- [ ] Add **Shringara as a trained class** with curated romantic dataset
-- [ ] Integrate **real Spotify OAuth API** for actual playlist creation
-- [ ] **Multi-face tracking** for group emotion recognition
-- [ ] **Voice + face fusion** for more robust emotion detection
-- [ ] **Mobile deployment** via ONNX export
-- [ ] **Batch playlist generation** for different time-of-day moods
-- [ ] **Genre-specific filtering** based on user preferences
-
----
-
-## 🧠 Technical Stack
-
-- **Deep Learning**: PyTorch 2.0+, torchvision
-- **Data Loading**: HuggingFace datasets library
-- **Computer Vision**: OpenCV 4.8+
-- **Web Framework**: Streamlit 1.28+
-- **Data Processing**: Pandas, NumPy
-- **Visualization**: Matplotlib, Seaborn
-- **Evaluation**: scikit-learn
-- **Notebook**: Jupyter
-
----
-
-## 📊 Citation
-
-This project uses:
-- **AffectNet Dataset**: Mollahosseini et al., "AffectNet: A Database for Facial Expression Recognition" (2019)
-- **Spotify Tracks**: [maharshipandya/spotify-tracks-dataset](https://huggingface.co/datasets/maharshipandya/spotify-tracks-dataset)
-- **MobileNetV2**: Sandler et al., "MobileNetV2: Inverted Residuals and Linear Bottlenecks" (2018)
-
----
-
-## ⚖️ License
-
-This project is provided for educational and research purposes. Comply with:
-- AffectNet license (research use only)
-- Spotify dataset license (MIT)
-- Dataset source attribution requirements
-
----
-
-## 📧 Contact & Support
-
-For questions or issues:
-1. Check the `notebooks/comparison.ipynb` for detailed analysis
-2. Review `models/train.py` logs for training insights
-3. Ensure `data/songs_cache.parquet` exists before running the app
-
----
-
-## 🎭 Final Note
-
-> *"The Navarasa represent the very essence of human experience. By bridging ancient wisdom with modern technology, we create a system that understands not just what you feel, but what you need to hear."*
-
-Enjoy discovering music through emotion! 🎵
+<p align="center">
+  Built with ❤️ to create a more empathetic music listening experience through technology. 🎵
+</p>
