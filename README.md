@@ -259,6 +259,53 @@ python backend/main.py & cd frontend && npm run dev
 
 ---
 
+## 2. Load & Cache Datasets
+
+```bash
+# Download AffectNet & Spotify datasets, verify integrity, cache Spotify
+python data/setup_datasets.py
+python music/preprocess_songs.py
+
+# Expected output:
+# ✅ Dataset 1 (AffectNet) loaded successfully - 29,042 samples
+# ✅ Dataset 2 (Spotify) loaded successfully - 100,000+ tracks cached
+```
+
+## 3. Train Models
+
+```bash
+# Train CustomCNN (60 epochs, batch size 64)
+python models/train.py --model custom_cnn --epochs 60 --batch_size 64
+
+# Train MobileNetV2 (60 epochs, batch size 32)
+python models/train.py --model mobilenet --epochs 60 --batch_size 32
+
+# Expected output:
+# ✅ Training complete!
+#   Best Val Accuracy: 0.7234
+#   Best Epoch: 42
+#   Checkpoint: models/checkpoints/mobilenet_best.pth
+```
+
+## 4. Evaluate & Compare Models
+
+Open and run the Jupyter notebook:
+
+```bash
+jupyter notebook notebooks/comparison.ipynb
+```
+
+This notebook will:
+
+* Load both trained models
+* Plot training curves (loss, accuracy)
+* Display confusion matrices for each emotion
+* Print classification reports highlighting contempt F1
+* Benchmark inference speed and model size
+* Provide deployment recommendation
+
+---
+
 ## 🎯 Key Improvements (v2.0)
 
 | Area | What Changed |
@@ -269,6 +316,14 @@ python backend/main.py & cd frontend && npm run dev
 | **Stability** | 0.40 confidence threshold to reject uncertain detections (falls back to Neutral) |
 | **YouTube** | Added stress-relief video recommendations for all emotional states |
 | **Chat Mode** | New conversational AI (Emora) for text-based mood analysis |
+
+---
+
+## 📄 Project Documentation
+
+For detailed project reports, architecture diagrams, and academic documentation:
+
+📎 **[View Full Project Details on Notion](https://www.notion.so/Emotion-Aware-Music-Recommendation-System-34a5e0abfd9d80938a99de2ba591e0d2?source=copy_link)**
 
 ---
 
