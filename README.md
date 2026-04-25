@@ -134,7 +134,7 @@ You'll also need a **Spotify Developer Account** — [create one here](https://d
 ### Step 2 — Clone the Repository
 
 ```bash
-git clone https://github.com/Sansii18/Emotion-Aware-Song-Recommendation-System.git
+git clone https://github.com/sanjay-m6/Emotion-Aware-Song-Recommendation-System
 cd Emotion-Aware-Song-Recommendation-System
 ```
 
